@@ -1,0 +1,190 @@
+# Multi-Site Capacity Allocation — A Mixed-Integer Programming Model
+
+Deciding which commercial orders to accept, and at which manufacturing site to produce them,
+under machine-hour capacity constraints — formulated as an integer program and solved with
+PuLP/CBC.
+
+> **All numerical data in this repository is synthetic and illustrative.** Capacities, margins,
+> order volumes and the logistics rate were generated for this modelling exercise. They are not
+> the actual figures of any organisation. The only non-generated inputs are geographic: the eight
+> Arts et Métiers campus cities, and great-circle distances computed from real coordinates.
+
+> **This is a personal modelling project.** It is inspired by my role as Business Manager leading
+> the Commercial Offers workstream at AMJE (Arts et Métiers Junior-Entreprise), but it is not an
+> official mandate, not a requested deliverable, and not a tool deployed anywhere.
+
+---
+
+## What this project does
+
+It formulates, solves and — above all — *interprets* an integer program end to end. Producing an
+optimal number is the easy part. The sections on the linear relaxation, and on what shadow prices
+do and do not mean once integrality is imposed, are the point of the exercise.
+
+The motivation was to close a specific gap in my own toolkit: my prior technical work is built on
+machine learning, Monte Carlo simulation and heuristic decision systems, none of which involves
+classical mathematical programming.
+
+## The problem
+
+A manufacturing network pools the capacity of eight sites across several process types — CNC
+turning, CNC milling on polymers, conventional machining, sheet metal work, FDM additive
+manufacturing and electrical discharge machining. Commercial orders arrive; each carries a gross
+margin, consumes machine-hours on one or more processes, and originates from a client somewhere
+in France.
+
+Two decisions are made simultaneously:
+
+1. **Which orders to accept.** Capacity is finite.
+2. **Which site produces each accepted order.** The client never specifies this.
+
+Two real constraints govern the second decision:
+
+- **Machine compatibility — a hard constraint.** A site can only take an order if it owns every
+  process the order requires. This includes an *exclusion perimeter*: two processes exist nowhere
+  in the network, so orders requiring them cannot be served at all.
+- **Geographic proximity — a cost, not a constraint.** A distant site is not forbidden, it is
+  more expensive. Modelling this as a cost term rather than a hard rule is deliberate, and is the
+  single most consequential modelling decision in the project.
+
+## Results
+
+Synthetic instance: 28 orders, 8 sites, 8 process types → 163 binary variables, 63 constraints.
+
+| | |
+|---|---|
+| MILP optimum | €40,628.64 |
+| LP relaxation bound | €45,158.07 |
+| Integrality gap | 11.15% |
+| Orders accepted / refused | 24 / 4 |
+| Binding capacity constraints | 9 |
+| Non-zero shadow prices | 13 |
+
+All results reproduced identically on two independent solvers — CBC via PuLP and HiGHS via
+SciPy — including the ranking of dual values, which could legitimately have diverged given the
+degeneracy present in this instance.
+
+### Four findings
+
+**The optimum routes around congestion, and pays for it.** Thirteen of the twenty-four accepted
+orders are *not* sent to their nearest compatible site, at a total logistics premium of €3,616.
+Those thirteen assignments are exactly what a greedy nearest-site rule would get wrong: it would
+route them to a saturated site and then have nowhere to put the orders that follow.
+
+**Refusal has two separable causes.** Three orders are refused for *capability* — no site owns
+the required process, and they represent €13,100 of structurally inaccessible margin. One is
+refused for *capacity* — it could be produced, but the hours are worth more elsewhere. These
+demand opposite managerial responses: investment or subcontracting in one case, pricing and
+arbitration in the other. Only the model separates them cleanly.
+
+**Stranded capacity is invisible to utilisation metrics.** The refused order needs 14 hours of
+electrical discharge machining. The network still holds 12 idle EDM hours — but they sit at
+Cluny, two short of what an indivisible order requires, while Angers (14/14) and Metz (16/16) are
+saturated. Capacity that exists, is idle, and is unusable. No utilisation percentage can show
+this.
+
+**Shadow prices do not survive the integrality constraint intact.** The dual on the scarcest
+resource reads €185.26 per machine-hour. Adding capacity there and re-solving the *integer*
+problem:
+
+| hours added | realised gain | dual prediction | ratio |
+|---|---|---|---|
+| 1 | €0.00 | €185.26 | 0.00 |
+| 4 | €0.00 | €741.04 | 0.00 |
+| 12 | €0.00 | €2,223.12 | 0.00 |
+| 14 | €2,326.40 | €2,593.64 | 0.90 |
+| 20 | €2,326.40 | €3,705.20 | 0.63 |
+
+The first twelve hours are worth exactly nothing. Value appears only at the 14-hour threshold
+matching the indivisible requirement of the refused order, then plateaus while the linear
+prediction keeps growing.
+
+## Formulation
+
+**Sets.** Orders $I$, sites $C$, processes $P$.
+
+**Parameters.** $m_i$ gross margin of order $i$; $h_{i,p}$ machine-hours of process $p$ required
+by order $i$; $K_{c,p}$ hours of process $p$ available at site $c$; $d_{i,c}$ client-to-site
+distance; $\tau$ logistics cost per kilometre.
+
+**Compatibility set.** $\mathcal{A} = \lbrace (i,c) : h_{i,p} > 0 \Rightarrow K_{c,p} > 0 \text{ for all } p \rbrace$.
+Incompatible assignments get no variable at all, rather than being forbidden by a constraint.
+
+**Decision variable.** $x_{i,c} \in \lbrace 0,1 \rbrace$ for $(i,c) \in \mathcal{A}$ — order $i$ is accepted
+and assigned to site $c$.
+
+**Objective.**
+
+$$\max \sum_{(i,c) \in \mathcal{A}} (m_i - \tau d_{i,c}) x_{i,c}$$
+
+Both terms are in euros. This matters: if distance were penalised in kilometres or in an
+arbitrary score, the shadow price "euros per machine-hour" would lose its dimensional meaning.
+
+**Constraints.**
+
+$$\sum_{c} x_{i,c} \le 1 \quad \text{for all } i$$
+
+$$\sum_{i} h_{i,p} x_{i,c} \le K_{c,p} \quad \text{for all } c, p$$
+
+The first is an inequality, not an equality. Writing $= 1$ would force every order to be
+accepted, making the problem infeasible as soon as capacity is short — and, worse, removing the
+model's ability to express a refusal. Refusing an order is a decision, not a failure.
+
+This is a **generalised assignment problem**: NP-hard, which is why a solver rather than a greedy
+rule is warranted.
+
+### A note on the name
+
+Every variable in this model is binary; there are no continuous variables. Strictly speaking this
+is a *binary integer program*, of which mixed-integer programming is the more general family. The
+MILP label is used here because it is the standard name for the solver class and the relaxation
+technique, not because the model contains a continuous part.
+
+## On duality
+
+The scarcity information in this model — where an extra machine-hour is worth most — is the part
+a manager would actually act on, and the linear relaxation is the only practicable way to get at
+it. Integer programs do not hand you shadow prices: strong duality does not survive integrality
+constraints. The feasible region is a set of isolated lattice points rather than a polyhedron,
+there is no *linear* dual program whose optimum matches it, and PuLP returns `None` for `.pi` on
+a problem solved as an integer program.
+
+So the standard route, used here, is to solve the relaxation and read its duals. That works, and
+the resulting ranking is genuinely informative. But it comes at a cost this project states
+explicitly rather than glossing over:
+
+- The duals price the marginal hour *in a world where orders can be split fractionally across
+  sites* — a world that does not exist.
+- They are valid only locally; push the right-hand side far enough and the basis changes.
+- The integrality gap bounds how far they can be off.
+- They are not necessarily unique. This instance is degenerate, so the ranking is read as a
+  directional indication of where scarcity concentrates, not as a certified price vector.
+
+The right use is therefore directional, and the fourth finding above tests that empirically
+rather than assuming it.
+
+## Limitations
+
+No time dimension: capacity is a single stock of hours over one horizon, with no release dates,
+due dates or sequencing. No setup times: machine-hours are consumed linearly. No uncertainty:
+margins and hour requirements are point estimates. Deterministic and single-shot: all orders are
+known at once, where reality is a rolling arrival process.
+
+The formulation is the transferable part of this work. None of the numerical results describe any
+real organisation.
+
+## Running it
+
+```bash
+git clone <this-repo>
+cd <this-repo>
+pip install pulp pandas numpy
+jupyter notebook MILP_Capacity_Allocation_final.ipynb
+```
+
+PuLP ships with the CBC solver, so no separate solver installation is needed. The notebook runs
+top to bottom in under a minute and is self-contained — all data is generated inline.
+
+---
+
+Tom Demir — September 2026
