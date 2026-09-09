@@ -135,10 +135,10 @@ rule is warranted.
 
 ### A note on the name
 
-Every variable in this model is binary; there are no continuous variables. Strictly speaking this
-is a *binary integer program*, of which mixed-integer programming is the more general family. The
-MILP label is used here because it is the standard name for the solver class and the relaxation
-technique, not because the model contains a continuous part.
+Every variable in the **nominal** model is binary; strictly speaking that model is a *binary
+integer program*, of which mixed-integer programming is the more general family. The robust
+counterpart of the final section is a genuine mixed-integer program: its Bertsimas-Sim
+reformulation introduces continuous dual variables alongside the binary assignment variables.
 
 ## On duality
 
