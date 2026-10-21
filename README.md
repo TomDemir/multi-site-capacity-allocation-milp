@@ -172,6 +172,15 @@ rather than assuming it.
 
 ## Limitations
 
+Every order is produced entirely on one site. That is assumed rather than derived: a binary
+$x_{i,c}$ assigned at most once cannot split an order between a site doing the turning and
+another doing the sheet metal, which is how real multi-process work often runs. It changes
+answers — the capacity-refused order needs 14 EDM hours while 12 sit idle elsewhere, and a
+splittable model might place it.
+
+Distance is a one-way great-circle approximation, not road distance and not a return trip, and
+the rate applied to it is a figure chosen for the exercise rather than quoted from anywhere.
+
 No time dimension: capacity is a single stock of hours over one horizon, with no release dates,
 due dates or sequencing. No setup times: machine-hours are consumed linearly. No uncertainty:
 margins and hour requirements are point estimates. Deterministic and single-shot: all orders are
