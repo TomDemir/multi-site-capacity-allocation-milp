@@ -68,8 +68,9 @@ degeneracy present in this instance.
 
 **The optimum routes around congestion, and pays for it.** Thirteen of the twenty-four accepted
 orders are *not* sent to their nearest compatible site, at a total logistics premium of €3,616.
-Those thirteen assignments are exactly what a greedy nearest-site rule would get wrong: it would
-route them to a saturated site and then have nowhere to put the orders that follow.
+Those thirteen assignments are what a greedy nearest-site rule gets wrong: it routes them to a
+saturated site and then has nowhere to put the orders that follow. Run on this instance, the best
+of three greedy orderings returns €38,762.90 against the model's €40,628.64.
 
 **Refusal has two separable causes.** Three orders are refused for *capability* — no site owns
 the required process, and they represent €13,100 of structurally inaccessible margin. One is
@@ -130,8 +131,11 @@ The first is an inequality, not an equality. Writing $= 1$ would force every ord
 accepted, making the problem infeasible as soon as capacity is short — and, worse, removing the
 model's ability to express a refusal. Refusing an order is a decision, not a failure.
 
-This is a **generalised assignment problem**: NP-hard, which is why a solver rather than a greedy
-rule is warranted.
+This is a **generalised assignment problem**. The class is NP-hard, but that describes worst
+cases as the problem grows and settles nothing about an instance of 28 orders, which solves in
+well under a second. The case for the model is therefore made on the instance instead: the
+notebook runs the greedy nearest-site rule the model replaces, and the model beats the best of
+three greedy orderings by €1,865.73 — 4.81% — while placing 24 orders against the rule's 23.
 
 ### A note on the name
 
