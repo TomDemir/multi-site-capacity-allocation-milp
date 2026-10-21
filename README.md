@@ -152,8 +152,10 @@ reformulation introduces continuous dual variables alongside the binary assignme
 The scarcity information in this model, meaning where an extra machine-hour is worth most, is the
 part a manager would act on. The linear relaxation is the only practicable way to get at it. Integer programs do not hand you shadow prices: strong duality does not survive integrality
 constraints. The feasible region is a set of isolated lattice points rather than a polyhedron,
-there is no *linear* dual program whose optimum matches it, and PuLP returns `None` for `.pi` on
-a problem solved as an integer program.
+and there is no *linear* dual program whose optimum matches it. PuLP does not stop you reading a
+`.pi` after an integer solve, which is the trap: the attribute resolves and returns a number,
+zero for every capacity constraint on this instance, and nothing signals that the number is not
+a dual. The notebook prints those values rather than asserting the point.
 
 So the standard route, used here, is to solve the relaxation and read its duals. Concretely, the
 shadow prices are read from a model rebuilt with continuous variables in $[0,1]$. They are not
