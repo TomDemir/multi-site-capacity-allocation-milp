@@ -144,7 +144,7 @@ three greedy orderings by €1,865.73, or 4.81%, while placing 24 orders against
 
 Every variable in the **nominal** model is binary; strictly speaking that model is a *binary
 integer program*, of which mixed-integer programming is the more general family. The robust
-counterpart of the final section is a genuine mixed-integer program: its Bertsimas-Sim
+counterpart of the final section is a mixed-integer program: its Bertsimas-Sim
 reformulation introduces continuous dual variables alongside the binary assignment variables.
 
 ## On duality
