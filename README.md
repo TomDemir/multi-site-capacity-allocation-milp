@@ -149,9 +149,12 @@ constraints. The feasible region is a set of isolated lattice points rather than
 there is no *linear* dual program whose optimum matches it, and PuLP returns `None` for `.pi` on
 a problem solved as an integer program.
 
-So the standard route, used here, is to solve the relaxation and read its duals. That works, and
-the resulting ranking is genuinely informative. But it comes at a cost this project states
-explicitly rather than glossing over:
+So the standard route, used here, is to solve the relaxation and read its duals. Concretely, the
+shadow prices are read from a model rebuilt with continuous variables in $[0,1]$ — not from the
+integer model, and not by fixing the binaries at their optimal values and re-solving, which
+prices the marginal hour conditional on a fixed assignment and answers a different question.
+That route works, and the resulting ranking carries real information. But it comes at a cost
+this project states rather than glosses over:
 
 - The duals price the marginal hour *in a world where orders can be split fractionally across
   sites* — a world that does not exist.
