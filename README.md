@@ -195,7 +195,7 @@ real organisation.
 git clone <this-repo>
 cd <this-repo>
 pip install pulp pandas numpy
-jupyter notebook MILP_Capacity_Allocation_final.ipynb
+jupyter notebook capacity_allocation.ipynb
 ```
 
 PuLP ships with the CBC solver, so no separate solver installation is needed. The notebook runs
